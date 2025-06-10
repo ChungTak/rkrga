@@ -546,6 +546,47 @@ elif [[ "$TARGET" == *"-linux-harmonyos"* ]]; then
     
     # 创建动态交叉编译配置文件
     CROSS_FILE="$PROJECT_ROOT_DIR/cross-build.txt"
+    
+    # 处理链接器优化标志 - 将单个字符串拆分为数组元素
+    LINK_ARGS_OPTIMIZE=""
+    if [ -n "$LDFLAGS_OPTIMIZE" ]; then
+        # 将 LDFLAGS_OPTIMIZE 拆分为单独的参数
+        IFS=' ' read -ra LDFLAGS_ARRAY <<< "$LDFLAGS_OPTIMIZE"
+        for flag in "${LDFLAGS_ARRAY[@]}"; do
+            if [ -n "$flag" ]; then
+                LINK_ARGS_OPTIMIZE="$LINK_ARGS_OPTIMIZE'$flag', "
+            fi
+        done
+        # 移除最后的逗号和空格
+        LINK_ARGS_OPTIMIZE="${LINK_ARGS_OPTIMIZE%, }"
+    fi
+    
+    # 处理 libdrm 链接标志
+    LINK_ARGS_LIBDRM=""
+    if [ -n "$LIBDRM_LDFLAGS" ]; then
+        IFS=' ' read -ra LIBDRM_LDFLAGS_ARRAY <<< "$LIBDRM_LDFLAGS"
+        for flag in "${LIBDRM_LDFLAGS_ARRAY[@]}"; do
+            if [ -n "$flag" ]; then
+                LINK_ARGS_LIBDRM="$LINK_ARGS_LIBDRM'$flag', "
+            fi
+        done
+        # 移除最后的逗号和空格
+        LINK_ARGS_LIBDRM="${LINK_ARGS_LIBDRM%, }"
+    fi
+    
+    # 组合所有链接参数
+    ALL_LINK_ARGS=""
+    if [ -n "$LINK_ARGS_OPTIMIZE" ]; then
+        ALL_LINK_ARGS="$LINK_ARGS_OPTIMIZE"
+    fi
+    if [ -n "$LINK_ARGS_LIBDRM" ]; then
+        if [ -n "$ALL_LINK_ARGS" ]; then
+            ALL_LINK_ARGS="$ALL_LINK_ARGS, $LINK_ARGS_LIBDRM"
+        else
+            ALL_LINK_ARGS="$LINK_ARGS_LIBDRM"
+        fi
+    fi
+
 cat > "$CROSS_FILE" << EOF
 [binaries]
 c = '${TOOLCHAIN}/$OHOS_ARCH-unknown-linux-ohos-clang'
@@ -565,8 +606,8 @@ c_std = 'c11'
 default_library = 'both'
 c_args = ['$HARMONYOS_COMPAT_FLAGS', '$ZIG_OPTIMIZE_FLAGS', '$LIBDRM_CFLAGS']
 cpp_args = ['$HARMONYOS_COMPAT_FLAGS', '$ZIG_OPTIMIZE_FLAGS', '$LIBDRM_CFLAGS', '-fpermissive']
-c_link_args = ['$LDFLAGS_OPTIMIZE', '$LIBDRM_LDFLAGS']
-cpp_link_args = ['$LDFLAGS_OPTIMIZE', '$LIBDRM_LDFLAGS']
+c_link_args = [$ALL_LINK_ARGS]
+cpp_link_args = [$ALL_LINK_ARGS]
 EOF
 
 else
