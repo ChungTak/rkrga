@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Release version tag (will auto-fetch from airockchip/librga if not specified)'
+        description: 'Release version tag (will auto-fetch from nyanmisaka/rk-mirrors if not specified)'
         required: false
         default: ''
         type: string
@@ -437,7 +437,7 @@ jobs:
             echo "libdrm disabled"
           fi
 
-          ./build_with_zig.sh --target=${{ matrix.target }} $ENABLE_LIBDRM $ENABLE_LIBDRM
+          ./build_with_zig.sh --target=${{ matrix.target }} $OPTIMIZE_FLAG $ENABLE_LIBDRM
           
           # Verify build output
           echo "Checking build results..."
