@@ -431,7 +431,7 @@ jobs:
 
           ENABLE_LIBDRM=""
           if [ "${{ github.event.inputs.enable_libdrm }}" = "true" ]; then
-            ENABLE_LIBDRM="--enable_libdrm"
+            ENABLE_LIBDRM="--enable-libdrm"
             echo "libdrm enabled"
           else
             echo "libdrm disabled"
