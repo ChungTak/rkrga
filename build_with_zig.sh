@@ -295,19 +295,6 @@ case "$TARGET" in
         ;;
 esac
 
-if [ "$OPTIMIZE_SIZE" = true ]; then
-    # 大小优化标志
-    ZIG_OPTIMIZE_FLAGS="-Os -DNDEBUG -ffunction-sections -fdata-sections -fvisibility=hidden $ARCH_DEFINES"
-    export LDFLAGS="-Wl,--gc-sections -Wl,--strip-all"
-else
-    ZIG_OPTIMIZE_FLAGS="-O2 -DNDEBUG $ARCH_DEFINES"
-    export LDFLAGS=""
-fi
-
-# 添加64位兼容性编译参数，解决指针转换问题
-COMPAT_FLAGS="-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-narrowing"
-ZIG_OPTIMIZE_FLAGS="$ZIG_OPTIMIZE_FLAGS $COMPAT_FLAGS"
-
 # 设置libdrm环境变量
 LIBDRM_CFLAGS=""
 LIBDRM_LDFLAGS=""
@@ -670,9 +657,9 @@ fi
 
 # 为HarmonyOS构建设置特殊的编译参数
 if [[ "$TARGET" == *"-linux-harmonyos"* ]]; then
-    MESON_CMD="$MESON_CMD --default-library=shared -Dcpp_args='-fpermissive -w -ferror-limit=0 -Wno-everything $HARMONYOS_COMPAT_FLAGS $LIBDRM_CFLAGS' -Dc_args='-w -ferror-limit=0 -Wno-everything $HARMONYOS_COMPAT_FLAGS $LIBDRM_CFLAGS' -Dlibdrm=$LIBDRM_OPTION -Dlibrga_demo=false"
+    MESON_CMD="$MESON_CMD --default-library=shared -Dcpp_args='-fpermissive -w -ferror-limit=0 -Wno-everything $ARCH_DEFINES $HARMONYOS_COMPAT_FLAGS $LIBDRM_CFLAGS' -Dc_args='-w -ferror-limit=0 -Wno-everything $ARCH_DEFINES $HARMONYOS_COMPAT_FLAGS $LIBDRM_CFLAGS' -Dlibdrm=$LIBDRM_OPTION -Dlibrga_demo=false"
 else
-    MESON_CMD="$MESON_CMD --default-library=shared -Dcpp_args='-fpermissive -w -ferror-limit=0 -Wno-everything $LIBDRM_CFLAGS' -Dc_args='-w -ferror-limit=0 -Wno-everything $LIBDRM_CFLAGS' -Dlibdrm=$LIBDRM_OPTION -Dlibrga_demo=false"
+    MESON_CMD="$MESON_CMD --default-library=shared -Dcpp_args='-fpermissive -w -ferror-limit=0 -Wno-everything $ARCH_DEFINES $LIBDRM_CFLAGS' -Dc_args='-w -ferror-limit=0 -Wno-everything $ARCH_DEFINES $LIBDRM_CFLAGS' -Dlibdrm=$LIBDRM_OPTION -Dlibrga_demo=false"
 fi
 
 
