@@ -427,13 +427,15 @@ TARGET_ENDIAN="${TARGET_INFO[3]}"
 LDFLAGS_OPTIMIZE=""
 # 添加64位兼容性编译参数，解决指针转换问题
 COMPAT_FLAGS="-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-narrowing"
+# 添加缺失的宏定义，解决 __BEGIN_DECLS 和 __END_DECLS 未定义问题
+DECLS_FLAGS="-D__BEGIN_DECLS= -D__END_DECLS="
 if [ "$OPTIMIZE_SIZE" = true ]; then
     # 大小优化标志
-    ZIG_OPTIMIZE_FLAGS="-Os -DNDEBUG -ffunction-sections -fdata-sections -fvisibility=hidden $ARCH_DEFINES $COMPAT_FLAGS"
+    ZIG_OPTIMIZE_FLAGS="-Os -DNDEBUG -ffunction-sections -fdata-sections -fvisibility=hidden $ARCH_DEFINES $COMPAT_FLAGS $DECLS_FLAGS"
     export LDFLAGS="-Wl,--gc-sections -Wl,--strip-all"
     LDFLAGS_OPTIMIZE="-Wl,--gc-sections -Wl,--strip-all"
 else
-    ZIG_OPTIMIZE_FLAGS="-O2 -DNDEBUG $ARCH_DEFINES $COMPAT_FLAGS"
+    ZIG_OPTIMIZE_FLAGS="-O2 -DNDEBUG $ARCH_DEFINES $COMPAT_FLAGS $DECLS_FLAGS"
     LDFLAGS_OPTIMIZE=""    
     export LDFLAGS=""
 fi
@@ -499,39 +501,40 @@ elif [[ "$TARGET" == *"-linux-harmonyos"* ]]; then
         echo -e "${RED}请设置 HARMONYOS_SDK_HOME 环境变量${NC}"
         exit 1
     fi
-    HARMONYOS_API_LEVEL=9
+    
+    # HarmonyOS 工具链路径
+    HOST_TAG=linux-x86_64
+    TOOLCHAIN=$HARMONYOS_SDK_ROOT/llvm/bin
+    export PATH=$TOOLCHAIN:$PATH
     
     case "$TARGET" in
         aarch64-linux-harmonyos)
-            OHOS_ARCH=arm64-v8a
-            TARGET=aarch64-linux-musl
+            OHOS_ARCH=aarch64
+            HARMONYOS_TARGET=aarch64-linux-ohos
             NDK_ARCH_DIR=aarch64
             ;;
         arm-linux-harmonyos)
-            OHOS_ARCH=armeabi-v7a
-            TARGET=arm-linux-musleabi
+            OHOS_ARCH=armv7
+            HARMONYOS_TARGET=arm-linux-ohos
             NDK_ARCH_DIR=arm
             ;;
         x86_64-linux-harmonyos)
             OHOS_ARCH=x86_64
-            TARGET=x86_64-linux-musl
+            HARMONYOS_TARGET=x86_64-linux-ohos
             NDK_ARCH_DIR=x86_64
-            ;;
-        x86-linux-harmonyos)
-            OHOS_ARCH=x86
-            TARGET=x86-linux-musl
-            NDK_ARCH_DIR=x86
             ;;
         *)
             echo -e "${RED}未知的 HarmonyOS 架构: $TARGET${NC}"
             exit 1
             ;;
     esac
+    
     # HarmonyOS SDK 路径 - 使用统一 sysroot
     HARMONYOS_SYSROOT="$HARMONYOS_SDK_ROOT/sysroot"
     HARMONYOS_INCLUDE="$HARMONYOS_SYSROOT/usr/include"
     # 库文件路径
     HARMONYOS_LIB="$HARMONYOS_SYSROOT/usr/lib/$NDK_ARCH_DIR-linux-ohos"
+    
     # 检查必要的文件是否存在
     if [ ! -d "$HARMONYOS_INCLUDE" ]; then
         echo -e "${RED}错误: HarmonyOS SDK 包含目录未找到: $HARMONYOS_INCLUDE${NC}"
@@ -541,20 +544,27 @@ elif [[ "$TARGET" == *"-linux-harmonyos"* ]]; then
     if [ ! -d "$HARMONYOS_LIB" ]; then
         echo -e "${RED}错误: HarmonyOS SDK 库目录未找到: $HARMONYOS_LIB${NC}"
         exit 1
-    fi    
-    # 使用 Zig 作为编译器，配合 HarmonyOS SDK 的 libc
-    # 避免使用 --sysroot 和 -L 同时，因为 Zig 会错误地连接路径
-    # 使用 --sysroot 主要用于 headers 和 system libraries    
+    fi
+    
+    # 检查工具链是否存在
+    if [ ! -f "$TOOLCHAIN/clang" ]; then
+        echo -e "${RED}错误: HarmonyOS clang 编译器未找到: $TOOLCHAIN/clang${NC}"
+        exit 1
+    fi
     # 设置 LDFLAGS 来指定额外的库搜索路径
     export LDFLAGS="-L$HARMONYOS_LIB $LDFLAGS_OPTIMIZE"
+    
+    # 设置 HarmonyOS 兼容性标志，包含缺失的宏定义
+    HARMONYOS_COMPAT_FLAGS="-D__BEGIN_DECLS= -D__END_DECLS="
+    
     # 创建动态交叉编译配置文件
     CROSS_FILE="$PROJECT_ROOT_DIR/cross-build.txt"
 cat > "$CROSS_FILE" << EOF
 [binaries]
-c = ['zig', 'cc', '-target', '$TARGET','--sysroot', '$HARMONYOS_SYSROOT']
-cpp = ['zig', 'c++', '-target', '$TARGET','--sysroot', '$HARMONYOS_SYSROOT']
-ar = ['zig', 'ar']
-strip = ['zig', 'strip']
+c = '${TOOLCHAIN}/$OHOS_ARCH-unknown-linux-ohos-clang'
+cpp = '${TOOLCHAIN}/$OHOS_ARCH-unknown-linux-ohos-clang++'
+ar = '${TOOLCHAIN}/llvm-ar'
+strip = '${TOOLCHAIN}/llvm-strip'
 pkg-config = 'pkg-config'
 
 [host_machine]
@@ -566,6 +576,10 @@ endian = '$TARGET_ENDIAN'
 [built-in options]
 c_std = 'c11'
 default_library = 'both'
+c_args = ['$HARMONYOS_COMPAT_FLAGS', '$ZIG_OPTIMIZE_FLAGS', '$LIBDRM_CFLAGS']
+cpp_args = ['$HARMONYOS_COMPAT_FLAGS', '$ZIG_OPTIMIZE_FLAGS', '$LIBDRM_CFLAGS', '-fpermissive']
+c_link_args = ['$LDFLAGS_OPTIMIZE', '$LIBDRM_LDFLAGS']
+cpp_link_args = ['$LDFLAGS_OPTIMIZE', '$LIBDRM_LDFLAGS']
 EOF
 
 else
@@ -626,6 +640,12 @@ echo -e "${BLUE}  字节序: $TARGET_ENDIAN${NC}"
 export CC="$ZIG_PATH cc -target $TARGET $ZIG_OPTIMIZE_FLAGS"
 export CXX="$ZIG_PATH c++ -target $TARGET $ZIG_OPTIMIZE_FLAGS"
 
+# 对于 HarmonyOS，使用 clang 而不是 zig
+if [[ "$TARGET" == *"-linux-harmonyos"* ]]; then
+    export CC="$TOOLCHAIN/clang --target=$HARMONYOS_TARGET --sysroot=$HARMONYOS_SYSROOT $HARMONYOS_COMPAT_FLAGS $ZIG_OPTIMIZE_FLAGS"
+    export CXX="$TOOLCHAIN/clang++ --target=$HARMONYOS_TARGET --sysroot=$HARMONYOS_SYSROOT $HARMONYOS_COMPAT_FLAGS $ZIG_OPTIMIZE_FLAGS"
+fi
+
 echo -e "${BLUE}Zig 编译器配置:${NC}"
 echo -e "${BLUE}  原始目标: $TARGET${NC}"
 echo -e "${BLUE}  Zig 目标: $TARGET${NC}"
@@ -647,7 +667,13 @@ LIBDRM_OPTION="false"
 if [ "$ENABLE_LIBDRM" = true ]; then
     LIBDRM_OPTION="true"
 fi
-MESON_CMD="$MESON_CMD --default-library=shared -Dcpp_args='-fpermissive -w -ferror-limit=0 -Wno-everything $LIBDRM_CFLAGS' -Dc_args='-w -ferror-limit=0 -Wno-everything $LIBDRM_CFLAGS' -Dlibdrm=$LIBDRM_OPTION -Dlibrga_demo=false"
+
+# 为HarmonyOS构建设置特殊的编译参数
+if [[ "$TARGET" == *"-linux-harmonyos"* ]]; then
+    MESON_CMD="$MESON_CMD --default-library=shared -Dcpp_args='-fpermissive -w -ferror-limit=0 -Wno-everything $HARMONYOS_COMPAT_FLAGS $LIBDRM_CFLAGS' -Dc_args='-w -ferror-limit=0 -Wno-everything $HARMONYOS_COMPAT_FLAGS $LIBDRM_CFLAGS' -Dlibdrm=$LIBDRM_OPTION -Dlibrga_demo=false"
+else
+    MESON_CMD="$MESON_CMD --default-library=shared -Dcpp_args='-fpermissive -w -ferror-limit=0 -Wno-everything $LIBDRM_CFLAGS' -Dc_args='-w -ferror-limit=0 -Wno-everything $LIBDRM_CFLAGS' -Dlibdrm=$LIBDRM_OPTION -Dlibrga_demo=false"
+fi
 
 
 # 打印配置信息
