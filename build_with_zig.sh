@@ -736,6 +736,8 @@ ninja -C $BUILD_DIR install
 # 检查安装结果
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}安装成功!${NC}"
+    # "修改 pkg-config 文件路径..."
+    find "${INSTALL_DIR}/lib/pkgconfig" -name "*.pc" -exec sed -i "s|^prefix=.*|prefix=/usr|g" {} \;       
     # 如果启用了libdrm，复制libdrm动态库到安装目录
     if [ "$ENABLE_LIBDRM" = true ] && [ -n "$LIBDRM_SOURCE_DIR" ] && [ -d "$LIBDRM_SOURCE_DIR" ]; then
         echo -e "${YELLOW}复制 libdrm 库到安装目录...${NC}"
