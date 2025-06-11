@@ -165,7 +165,7 @@ download_libdrm() {
     
     
     # GitHub releases API URL
-    local api_url="https://api.github.com/repos/ChungTak/libdrm/releases/latest"
+    local api_url="https://api.github.com/repos/ChungTak/libdrm-cross-builder/releases/latest"
     local download_url=""
     
     # 获取最新release信息
