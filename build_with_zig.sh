@@ -418,7 +418,7 @@ COMPAT_FLAGS="-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -Wno-narrowing"
 DECLS_FLAGS="-D__BEGIN_DECLS= -D__END_DECLS="
 if [ "$OPTIMIZE_SIZE" = true ]; then
     # 大小优化标志
-    ZIG_OPTIMIZE_FLAGS="-Os -DNDEBUG -ffunction-sections -fdata-sections -fvisibility=hidden $ARCH_DEFINES $COMPAT_FLAGS $DECLS_FLAGS"
+    ZIG_OPTIMIZE_FLAGS="-Os -DNDEBUG -ffunction-sections -fdata-sections $ARCH_DEFINES $COMPAT_FLAGS $DECLS_FLAGS"
     export LDFLAGS="-Wl,--gc-sections -Wl,--strip-all"
     LDFLAGS_OPTIMIZE="-Wl,--gc-sections -Wl,--strip-all"
 else
