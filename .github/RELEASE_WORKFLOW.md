@@ -54,7 +54,7 @@
 每个平台的构建产物包含：
 
 ```
-rockchip-rga-{version}-{target}/
+rkrga-{version}-{target}/
 ├── include/          # 头文件
 ├── lib/             # 库文件 (.so, .a)
 ├── pkgconfig/       # pkg-config 文件（如果可用）

@@ -457,7 +457,7 @@ jobs:
           ./.github/scripts/validate_build.sh "${{ matrix.target }}" "$OUTPUT_DIR"
 
           # Packaging
-          RELEASE_NAME="rockchip-rga-${{ needs.prepare.outputs.version_tag }}-${{ matrix.target }}"
+          RELEASE_NAME="rkrga-${{ needs.prepare.outputs.version_tag }}-${{ matrix.target }}"
           mkdir -p release/artifacts
           
           # Copy installation directory
@@ -511,7 +511,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-artifact-${{ matrix.target }}
-          path: release/artifacts/rockchip-rga-${{ needs.prepare.outputs.version_tag }}-${{ matrix.target }}.tar.gz
+          path: release/artifacts/rkrga-${{ needs.prepare.outputs.version_tag }}-${{ matrix.target }}.tar.gz
           overwrite: true
           include-hidden-files: false
           retention-days: 7
