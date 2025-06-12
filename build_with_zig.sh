@@ -742,7 +742,7 @@ if [ $? -eq 0 ]; then
     if [ "$ENABLE_LIBDRM" = true ] && [ -n "$LIBDRM_SOURCE_DIR" ] && [ -d "$LIBDRM_SOURCE_DIR" ]; then
         echo -e "${YELLOW}复制 libdrm 库到安装目录...${NC}"
         if [ -d "$LIBDRM_SOURCE_DIR/lib" ]; then
-            cp -rf "$LIBDRM_SOURCE_DIR/lib/pkgconfig/"* "$INSTALL_DIR/lib/pkgconfig" 2>/dev/null || true
+            cp -rf "$LIBDRM_SOURCE_DIR/lib/pkgconfig/libdrm.pc" "$INSTALL_DIR/lib/pkgconfig" 2>/dev/null || true
             cp -rf "$LIBDRM_SOURCE_DIR/lib/libdrm.so"* "$INSTALL_DIR/lib/" 2>/dev/null || true            
         fi
         if [ -d "$LIBDRM_SOURCE_DIR/include" ]; then
