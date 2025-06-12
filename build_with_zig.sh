@@ -97,6 +97,22 @@ BUILD_TYPE="release"
 INSTALL_DIR="$PROJECT_ROOT_DIR/rkrga_install/Release/${TARGET}"
 BUILD_DIR="$PROJECT_ROOT_DIR/rkrga_build/${TARGET}"
 
+# 处理清理动作
+if [ "$ACTION" = "clean" ]; then
+    echo -e "${YELLOW}清理构建目录和缓存...${NC}"
+    rm -rf "$PROJECT_ROOT_DIR/rkrga_build"
+    rm -rf "$PROJECT_ROOT_DIR/build_deps"
+    echo -e "${GREEN}构建目录和依赖已清理!${NC}"
+    exit 0
+elif [ "$ACTION" = "clean-dist" ]; then
+    echo -e "${YELLOW}清理构建目录和安装目录...${NC}"
+    rm -rf "$PROJECT_ROOT_DIR/rkrga_build"
+    rm -rf "$PROJECT_ROOT_DIR/rkrga_install"
+    rm -rf "$PROJECT_ROOT_DIR/build_deps"
+    rm -rf "$PROJECT_ROOT_DIR/build_deps"
+    echo -e "${GREEN}构建目录、安装目录和依赖已清理!${NC}"
+    exit 0
+fi
 # 函数：下载并解压 rkrga 源码
 download_rkrga() {
     local version="$1"
@@ -310,23 +326,6 @@ if [ "$ENABLE_LIBDRM" = true ] && [ -n "$LIBDRM_SOURCE_DIR" ]; then
     fi
 fi
 
-# 处理清理动作
-if [ "$ACTION" = "clean" ]; then
-    echo -e "${YELLOW}清理构建目录和缓存...${NC}"
-    rm -rf "$PROJECT_ROOT_DIR/rkrga_build"
-    rm -rf "$PROJECT_ROOT_DIR/build_deps"
-    echo -e "${GREEN}构建目录和依赖已清理!${NC}"
-    exit 0
-elif [ "$ACTION" = "clean-dist" ]; then
-    echo -e "${YELLOW}清理构建目录和安装目录...${NC}"
-    rm -rf "$PROJECT_ROOT_DIR/rkrga_build"
-    rm -rf "$PROJECT_ROOT_DIR/rkrga_install"
-    rm -rf "$PROJECT_ROOT_DIR/build_deps"
-    rm -rf "$PROJECT_ROOT_DIR/build_deps"
-    echo -e "${GREEN}构建目录、安装目录和依赖已清理!${NC}"
-    exit 0
-fi
-
 # 检查Zig是否安装
 if ! command -v zig &> /dev/null; then
     echo -e "${RED}错误: 未找到Zig。请安装Zig: https://ziglang.org/download/${NC}"
@@ -347,6 +346,7 @@ if [ ! -f "$RKRGA_SOURCE_DIR/meson.build" ]; then
 fi
 
 # 创建安装目录
+rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 
 # 创建RKRGA构建目录（每次都清理，避免 Meson 缓存污染）
